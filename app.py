@@ -23,7 +23,6 @@ model, descriptor_names, feature_medians = load_model()
 
 allowed_atoms = {"C", "H", "O", "N", "Si"}
 
-# Make a lookup dictionary of available RDKit descriptor functions
 descriptor_function_lookup = {
     name: function for name, function in Descriptors._descList
 }
@@ -77,7 +76,7 @@ st.title("Molecular Viscosity Predictor")
 
 st.write(
     "Enter a valid SMILES string to predict molecular viscosity at 25 °C. "
-    "The model predicts log η using RDKit molecular descriptors and XGBoost."
+    "The model predicts viscosity (cP) using RDKit molecular descriptors and XGBoost."
 )
 
 user_smiles = st.text_input(
@@ -96,10 +95,15 @@ if st.button("Predict viscosity"):
             st.error(error_message)
 
         else:
-            prediction = model.predict(X_user)[0]
+            prediction_log_eta = model.predict(X_user)[0]
+            prediction_cP = 10 ** prediction_log_eta
 
             st.success(
-                f"The predicted viscosity of your molecule at 25 °C is **{prediction:.2f} log η units**."
+                f"The predicted viscosity of your molecule at 25 °C is **{prediction_cP:.2f} cP**."
+            )
+
+            st.caption(
+                f"Model raw output: {prediction_log_eta:.2f} log η"
             )
 
             st.subheader("Molecular structure")
