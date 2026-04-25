@@ -21,6 +21,13 @@ def load_model():
 
 model, descriptor_names, feature_medians = load_model()
 
+allowed_atoms = {"C", "H", "O", "N", "Si"}
+
+# Make a lookup dictionary of available RDKit descriptor functions
+descriptor_function_lookup = {
+    name: function for name, function in Descriptors._descList
+}
+
 
 def generate_features(smiles):
     mol = Chem.MolFromSmiles(smiles)
@@ -31,13 +38,31 @@ def generate_features(smiles):
     if mol.GetNumAtoms() == 0:
         return None, None, "SMILES string does not contain a valid molecule."
 
+    if mol.GetNumAtoms() < 2:
+        return None, None, "Please enter a larger molecule with at least 2 atoms."
+
+    if "." in smiles:
+        return None, None, "Please enter a single connected molecule, not multiple fragments."
+
+    for atom in mol.GetAtoms():
+        if atom.GetSymbol() not in allowed_atoms:
+            return None, None, (
+                f"This molecule contains {atom.GetSymbol()}, which is outside the model's supported atom types."
+            )
+
     features = []
 
-    for name, function in Descriptors._descList:
-        try:
-            value = function(mol)
-        except Exception:
+    # Use the exact descriptor names saved during model training
+    for descriptor_name in descriptor_names:
+        function = descriptor_function_lookup.get(descriptor_name)
+
+        if function is None:
             value = np.nan
+        else:
+            try:
+                value = function(mol)
+            except Exception:
+                value = np.nan
 
         features.append(value)
 
